@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<<<<<<< HEAD
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StegoSecure - LSB Steganography</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', system_ui, sans-serif; }
+        .title-font { font-family: 'Space Grotesk', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200">
+    <header class="bg-slate-900 border-b border-slate-800 py-5">
+        <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-sky-500 rounded-2xl flex items-center justify-center text-2xl">🕉️</div>
+                <h1 class="title-font text-3xl font-bold">StegoSecure</h1>
+            </div>
+            <div class="text-sm text-slate-400"> Image Steganography </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-12">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+
+            <!-- Embed Section -->
+            <div class="bg-slate-900 rounded-3xl p-8">
+                <h2 class="text-2xl font-semibold mb-6 flex items-center gap-3">
+                    <i class="fas fa-lock text-purple-400"></i> Embed Message
+                </h2>
+                <form id="embed-form" class="space-y-6">
+                    <div>
+                        <label class="block text-slate-400 mb-2">Cover Image</label>
+                        <input type="file" id="embed-image" accept="image/*" class="block w-full text-sm text-slate-400 file:mr-4 file:py-3 file:px-6 file:rounded-3xl file:border-0 file:bg-slate-800 file:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-2">Secret Message </label>
+                        <textarea id="secret-message" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-3xl px-6 py-4" placeholder="ENTER YOUR SECRET MESSAGE"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-2">Password (Optional)</label>
+                        <input type="password" id="embed-pass" class="w-full bg-slate-800 border border-slate-700 rounded-3xl px-6 py-4">
+                    </div>
+                    <button onclick="embedMessage(event)" class="w-full bg-purple-600 hover:bg-purple-700 py-4 rounded-3xl font-medium text-lg">
+                        Embed with LSB And DCT
+                    </button>
+                </form>
+                <div id="embed-result" class="hidden mt-6 p-4 bg-slate-800 rounded-3xl"></div>
+            </div>
+
+            <!-- Extract Section -->
+            <div class="bg-slate-900 rounded-3xl p-8">
+                <h2 class="text-2xl font-semibold mb-6 flex items-center gap-3">
+                    <i class="fas fa-unlock text-emerald-400"></i> Extract Message
+                </h2>
+                <form id="extract-form" class="space-y-6">
+                    <div>
+                        <label class="block text-slate-400 mb-2">Stego Image</label>
+                        <input type="file" id="extract-image" accept="image/*" class="block w-full text-sm text-slate-400 file:mr-4 file:py-3 file:px-6 file:rounded-3xl file:border-0 file:bg-slate-800 file:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-2">Password (if used)</label>
+                        <input type="password" id="extract-pass" class="w-full bg-slate-800 border border-slate-700 rounded-3xl px-6 py-4">
+                    </div>
+                    <button onclick="extractMessage(event)" class="w-full bg-emerald-600 hover:bg-emerald-700 py-4 rounded-3xl font-medium text-lg">
+                        Extract Hidden Message
+                    </button>
+                </form>
+                <div id="extract-result" class="hidden mt-6 p-6 bg-slate-800 rounded-3xl">
+                    <div class="text-emerald-400 font-medium mb-2">Extracted Message:</div>
+                    <div id="extracted-text" class="text-lg leading-relaxed text-white font-light whitespace-pre-wrap"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function embedMessage(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('embed-image');
+            const message = document.getElementById('secret-message').value.trim() || "Om Nama Shivaya 🙏";
+            const password = document.getElementById('embed-pass').value.trim();
+
+            if (!fileInput.files[0]) {
+                alert("Please select a cover image");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            formData.append('message', message);
+            if (password) formData.append('password', password);
+
+            const resDiv = document.getElementById('embed-result');
+            resDiv.classList.remove('hidden');
+            resDiv.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Embedding using LSB...`;
+
+            try {
+                const response = await fetch('http://localhost:5000/embed', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.stegoBase64) {
+                    const link = document.createElement('a');
+                    link.href = `data:image/png;base64,${data.stegoBase64}`;
+                    link.download = 'stego_om_nama_shivaya.png';
+                    link.click();
+
+                    resDiv.innerHTML = `✅ Message "<strong>${message}</strong>" embedded successfully!<br><small class="text-slate-400">Downloaded as stego_om_nama_shivaya.png</small>`;
+                } else {
+                    resDiv.innerHTML = `❌ ${data.error || 'Embedding failed'}`;
+                }
+            } catch (err) {
+                resDiv.innerHTML = `❌ Error: ${err.message}`;
+            }
+        }
+
+        async function extractMessage(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('extract-image');
+            const password = document.getElementById('extract-pass').value.trim();
+
+            if (!fileInput.files[0]) {
+                alert("Please select a stego image");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            if (password) formData.append('password', password);
+
+            try {
+                const response = await fetch('http://localhost:5000/extract', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                const resultDiv = document.getElementById('extract-result');
+                const textDiv = document.getElementById('extracted-text');
+
+                resultDiv.classList.remove('hidden');
+
+                if (data.message) {
+                    textDiv.textContent = data.message;
+                } else {
+                    textDiv.innerHTML = `<span class="text-red-400">❌ ${data.error || 'No hidden message found or corrupted data'}</span>`;
+                }
+            } catch (err) {
+                alert("Extraction failed: " + err.message);
+            }
+        }
+    </script>
+=======
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Data Hiding</title>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🔐 Secure Data Hiding</h1>
+<p class="subtitle">Hide and Extract Secret Messages in Images</p>
+
+<div class="grid">
+
+<!-- Encode Card -->
+
+<div class="card">
+
+<h2>Encode Message</h2>
+
+<input type="file" id="encodeImage">
+
+<input type="text" id="message" placeholder="Enter Secret Message">
+
+<input type="password" id="encodePassword" placeholder="Enter Password">
+
+<button onclick="encode()">Encode & Download</button>
+
+</div>
+
+
+<!-- Decode Card -->
+
+<div class="card">
+
+<h2>Decode Message</h2>
+
+<input type="file" id="decodeImage">
+
+<input type="password" id="decodePassword" placeholder="Enter Password">
+
+<button onclick="decode()">Decode Message</button>
+
+<p id="result"></p>
+
+</div>
+
+</div>
+
+<footer>
+<p>Secure Data Hiding using LSB Steganography | MERN Project</p>
+</footer>
+
+</div>
+
+<script src="index.js"></script>
+
+>>>>>>> 881ddef3f856a8d5034b1ad64d16922c88f52d0f
+</body>
+</html>
