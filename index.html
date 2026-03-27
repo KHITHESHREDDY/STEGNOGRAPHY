@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<<<<<<< HEAD
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -155,5 +156,69 @@
             }
         }
     </script>
+=======
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Data Hiding</title>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🔐 Secure Data Hiding</h1>
+<p class="subtitle">Hide and Extract Secret Messages in Images</p>
+
+<div class="grid">
+
+<!-- Encode Card -->
+
+<div class="card">
+
+<h2>Encode Message</h2>
+
+<input type="file" id="encodeImage">
+
+<input type="text" id="message" placeholder="Enter Secret Message">
+
+<input type="password" id="encodePassword" placeholder="Enter Password">
+
+<button onclick="encode()">Encode & Download</button>
+
+</div>
+
+
+<!-- Decode Card -->
+
+<div class="card">
+
+<h2>Decode Message</h2>
+
+<input type="file" id="decodeImage">
+
+<input type="password" id="decodePassword" placeholder="Enter Password">
+
+<button onclick="decode()">Decode Message</button>
+
+<p id="result"></p>
+
+</div>
+
+</div>
+
+<footer>
+<p>Secure Data Hiding using LSB Steganography | MERN Project</p>
+</footer>
+
+</div>
+
+<script src="index.js"></script>
+
+>>>>>>> 881ddef3f856a8d5034b1ad64d16922c88f52d0f
 </body>
 </html>
