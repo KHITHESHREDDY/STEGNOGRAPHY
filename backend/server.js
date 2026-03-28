@@ -5,22 +5,30 @@ const crypto = require('crypto');
 const cors = require('cors');
 
 const app = express();
+
+// ✅ Enable CORS
 app.use(cors());
+
+// ✅ Multer setup
 const upload = multer({ storage: multer.memoryStorage() });
 
 const DELIMITER = '|||';
 
-// AES-256 Encryption (Fixed)
+// 🔐 Encrypt Message
 function encryptMessage(message, password) {
   if (!password || password.trim() === '') return message;
+
   const key = crypto.createHash('sha256').update(password).digest();
   const iv = crypto.randomBytes(16);
+
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(message, 'utf8', 'hex');
   encrypted += cipher.final('hex');
+
   return `ENC:${iv.toString('hex')}:${encrypted}`;
 }
 
+// 🔓 Decrypt Message
 function decryptMessage(encryptedData, password) {
   if (!encryptedData.startsWith('ENC:')) return encryptedData;
   if (!password || password.trim() === '') return "Password required";
@@ -32,50 +40,45 @@ function decryptMessage(encryptedData, password) {
     const iv = Buffer.from(parts[0], 'hex');
     const encryptedHex = parts[1];
 
-    if (encryptedHex.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(encryptedHex)) {
-      return "Corrupted encrypted data";
-    }
-
     const key = crypto.createHash('sha256').update(password).digest();
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+
     let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
+
     return decrypted;
   } catch (err) {
     return "Wrong password or corrupted data";
   }
 }
 
-// Hybrid Embed: LSB on pixels + mid-frequency DCT simulation
+// 📥 Embed Function
 async function embedHybrid(buffer, message, password = '') {
   const finalMsg = encryptMessage(message, password);
   const fullText = finalMsg + DELIMITER;
-  const binary = fullText.split('').map(c => 
+
+  const binary = fullText.split('').map(c =>
     c.charCodeAt(0).toString(2).padStart(8, '0')
   ).join('');
 
   const { data, info } = await sharp(buffer).raw().toBuffer({ resolveWithObject: true });
   const { width, height, channels } = info;
 
-  // 1. LSB Embedding (Spatial)
   let bitIndex = 0;
+
   for (let i = 0; i < data.length && bitIndex < binary.length; i++) {
     data[i] = (data[i] & 0xFE) | parseInt(binary[bitIndex]);
     bitIndex++;
   }
 
-  // 2. DCT-style enhancement (mid-frequency simulation on luminance)
-  // For real DCT we would use a full transform, but for performance we simulate by modifying every 8th pixel more carefully
-  // This makes it hybrid and harder to detect
-
-  const stegoBuffer = await sharp(data, { raw: { width, height, channels: 3 } })
-    .png()
-    .toBuffer();
+  const stegoBuffer = await sharp(data, {
+    raw: { width, height, channels }
+  }).png().toBuffer();
 
   return stegoBuffer.toString('base64');
 }
 
-// Extraction (same as before - clean with delimiter)
+// 📤 Extract Function
 async function extractHybrid(buffer, password = '') {
   const { data } = await sharp(buffer).raw().toBuffer({ resolveWithObject: true });
 
@@ -97,32 +100,53 @@ async function extractHybrid(buffer, password = '') {
   return decryptMessage(encryptedPart, password);
 }
 
-// Routes
+// 🌐 Test Route
+app.get('/', (req, res) => {
+  res.send('🚀 Backend is LIVE on Render!');
+});
+
+// 📥 Embed API
 app.post('/embed', upload.single('image'), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image uploaded" });
+    }
+
     const { message = "Govindha Govindha", password = '' } = req.body;
+
     const stegoBase64 = await embedHybrid(req.file.buffer, message, password);
-    res.json({ 
-      stegoBase64, 
+
+    res.json({
       success: true,
-      mode: "Hybrid (LSB + DCT simulation)"
+      stegoBase64
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// 📤 Extract API
 app.post('/extract', upload.single('image'), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image uploaded" });
+    }
+
     const { password = '' } = req.body;
+
     const message = await extractHybrid(req.file.buffer, password);
+
     res.json({ message });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(5000, () => {
-  console.log('🚀 Hybrid StegoSecure (LSB + DCT) is running on http://localhost:5000');
-  console.log('Both LSB and DCT are included for better security.');
+// ✅ IMPORTANT FOR RENDER
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🔥 Server running on port ${PORT}`);
 });
